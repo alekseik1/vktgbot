@@ -182,7 +182,7 @@ def sendPosts(items, last_id):
                         elif item['text'] == '':
                             item_text = ''
                         bot.send_message(config.tgChannel, '<a href="' + urlOfRepost + '"> </a>' + item_text +
-                                         '<b>REPOST ↓</b>\n\n' + '<i>' + textRepost + '</i>',
+                                         '<b>REPOST ↓</b>\n\n' + textRepost,
                                          parse_mode='HTML')
                     addLog('i', f"Text post sent [post id:{item['id']}]")
 
@@ -215,13 +215,13 @@ def sendPosts(items, last_id):
 
                             if howLong <= 1004:
                                 listOfPhotos[0].caption = ('<a href="' + urlOfRepost + '"> </a>'
-                                                           + item_text + '<b>REPOST ↓</b>\n\n' + '<i>' +
-                                                           textRepost + '</i>')
+                                                           + item_text + '<b>REPOST ↓</b>\n\n' +
+                                                           textRepost)
                                 listOfPhotos[0].parse_mode = 'HTML'
                             elif howLong > 1004:
                                 bot.send_message(config.tgChannel,
                                                  '<a href="' + urlOfRepost + '"> </a>' + item_text +
-                                                 '<b>REPOST ↓</b>\n\n' + '<i>' + textRepost + '</i>',
+                                                 '<b>REPOST ↓</b>\n\n' + textRepost,
                                                  parse_mode='HTML')
 
                         addLog('i', f"Text post sent [post id:{item['id']}]")
@@ -245,7 +245,7 @@ def sendPosts(items, last_id):
                                 item_text = ''
                             bot.send_message(config.tgChannel,
                                              '<a href="' + urlOfRepost + '"> </a>' + '<a href="' + Photo + '"> </a>' +
-                                             item_text + '<b>REPOST ↓</b>\n\n<i>' + textRepost + '</i>',
+                                             item_text + '<b>REPOST ↓</b>\n\n' + textRepost,
                                              parse_mode='HTML')
                         addLog('i', f"Post with photo sent [post id:{item['id']}]")
 
@@ -274,8 +274,8 @@ def sendPosts(items, last_id):
                         elif isRepost:
                             bot.send_message(config.tgChannel,
                                              '<a href="' + urlOfRepost + '"> </a>' +
-                                             item['text'] + '\n\n<b>REPOST ↓</b>\n\n' + '<i>' + textRepost + '\n' +
-                                             '\n'.join(video_url) + '</i>',
+                                             item['text'] + '\n\n<b>REPOST ↓</b>\n\n' + textRepost + '\n' +
+                                             '\n'.join(video_url),
                                              parse_mode='HTML')
                         addLog('i', f"Post with video sent [post id:{item['id']}]")
                     else:
@@ -298,7 +298,7 @@ def sendPosts(items, last_id):
                             bot.send_message(config.tgChannel,
                                              '<a href="' + urlOfRepost + '"> </a>' + '<a href="' +
                                              videoUrlPreview + '"> </a>' + item_text +
-                                             '<b>REPOST ↓</b>\n\n<i>' + textRepost + '</i>',
+                                             '<b>REPOST ↓</b>\n\n' + textRepost,
                                              parse_mode='HTML')
                         addLog('i', f"Post with video preview sent [post id:{item['id']}]")
 
@@ -320,7 +320,7 @@ def sendPosts(items, last_id):
                         bot.send_message(config.tgChannel,
                                          '<a href="' + urlOfRepost + '"> </a>' +
                                          item['text'] + linkurl +
-                                         '\n\n<b>REPOST ↓</b>\n\n' + '<i>' + textRepost + '</i>',
+                                         '\n\n<b>REPOST ↓</b>\n\n' + textRepost,
                                          parse_mode='HTML')
                     addLog('i', f"Text post with link sent [post id:{item['id']}]")
 
@@ -352,26 +352,26 @@ def sendPosts(items, last_id):
                         elif item['text'] == '':
                             item_text = ''
                         if doc_is == 'gif':
-                            gif_text = item_text + '<b>REPOST ↓</b>\n\n' + '<i>' + textRepost + '</i>'
+                            gif_text = item_text + '<b>REPOST ↓</b>\n\n' + textRepost
                             if len(gif_text) <= 1024:
                                 bot.send_video(config.tgChannel, docurl_gif, duration=None, caption=gif_text,
                                                reply_to_message_id=None, reply_markup=None, parse_mode='HTML')
                             elif len(gif_text) > 1024:
                                 bot.send_message(config.tgChannel,
                                                  item_text + '<b>REPOST ↓</b>\n\n' +
-                                                 '<i>' + textRepost + '</i>',
+                                                 textRepost,
                                                  parse_mode='HTML')
                                 bot.send_video(config.tgChannel, docurl_gif)
                         else:
                             with open(os.path.join('temp', doc_title), 'rb') as temp_file:
-                                doc_text = item_text + '<b>REPOST ↓</b>\n\n' + '<i>' + textRepost + '</i>'
+                                doc_text = item_text + '<b>REPOST ↓</b>\n\n' + textRepost
                                 if len(doc_text) <= 1024:
                                     bot.send_document(config.tgChannel, temp_file, reply_to_message_id=None,
                                                       caption=doc_text, reply_markup=None, parse_mode='HTML')
                                 elif len(doc_text) > 1024:
                                     bot.send_message(config.tgChannel,
                                                      item_text + '<b>REPOST ↓</b>\n\n' +
-                                                     '<i>' + textRepost + '</i>',
+                                                     textRepost,
                                                      parse_mode='HTML')
                                     bot.send_document(config.tgChannel, temp_file)
                     addLog('i', f"Post with document/gif sent [post id:{item['id']}]")
@@ -493,7 +493,11 @@ def getVideo(owner_id, video_id, access_key):
     try:
         data = requests.get(
             f'https://api.vk.com/method/video.get?access_token={config.vkToken}&v=5.103&videos={owner_id}_{video_id}_{access_key}')
-        return data.json()['response']['items'][0]['files']['external']
+        to_parse = data.json()['response']['items']
+        if 'files' in to_parse[0]:
+            return to_parse[0]['files']
+        elif 'player' in to_parse[0]:
+            return to_parse[0]['player']
     except Exception:
         return None
 
