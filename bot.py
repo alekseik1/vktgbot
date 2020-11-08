@@ -250,6 +250,7 @@ def sendPosts(items, last_id):
                         addLog('i', f"Post with photo sent [post id:{item['id']}]")
 
                 elif isTypePost == 'video':
+                    from_vk = False
                     if not config.parseVideo:
                         addLog('i', f"Post with video was skipped [post id:{item['id']}]")
                         isPostSent = True
@@ -260,7 +261,7 @@ def sendPosts(items, last_id):
                     if isRepost:
                         videos = item['copy_history'][0]['attachments']
                     for video in filter(lambda att: att['type'] == 'video', videos):
-                        video_temp = getVideo(video['video']['owner_id'],
+                        video_temp, from_vk = getVideo(video['video']['owner_id'],
                                               video['video']['id'],
                                               video['video']['access_key'])
                         if video_temp == None:
@@ -269,8 +270,10 @@ def sendPosts(items, last_id):
                             time.sleep(2)  # wait for a few seconds because VK can deactivate the token
                         video_url.append(video_temp)
                     if video_temp != None:
+                        if from_vk:
+                            video_url = [f'<a href="{url}">Видео</a>\n' for url in video_url]
                         if not isRepost:
-                            bot.send_message(config.tgChannel, item['text'] + '\n' + '\n'.join(video_url))
+                            bot.send_message(config.tgChannel, item['text'] + '\n' + '\n'.join(video_url), parse_mode='markdown')
                         elif isRepost:
                             bot.send_message(config.tgChannel,
                                              '<a href="' + urlOfRepost + '"> </a>' +
@@ -495,11 +498,11 @@ def getVideo(owner_id, video_id, access_key):
             f'https://api.vk.com/method/video.get?access_token={config.vkToken}&v=5.103&videos={owner_id}_{video_id}_{access_key}')
         to_parse = data.json()['response']['items']
         if 'files' in to_parse[0]:
-            return to_parse[0]['files']
+            return to_parse[0]['files'], False
         elif 'player' in to_parse[0]:
-            return to_parse[0]['player']
+            return to_parse[0]['player'], True
     except Exception:
-        return None
+        return None, False
 
 
 def blacklist_check(text):
