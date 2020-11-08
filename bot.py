@@ -7,6 +7,7 @@
 import os
 import sys
 import time
+import re
 import urllib
 import config
 import shutil
@@ -141,6 +142,9 @@ def sendPosts(items, last_id):
                         continue
                 else:
                     textRepost = ''
+                # Заменить все [id1234123|Имя Фамилия] на человеческие ссылки
+                textRepost = re.sub(r'\[(id\d+)\|([\w\W]+)\]', r'<a href="https://vk.com/\g<1>">\g<2></a>', textRepost)
+                item['text'] = re.sub(r'\[(id\d+)\|([\w\W]+)\]', r'<a href="https://vk.com/\g<1>">\g<2></a>', item['text'])
                 urlOfRepost = ''
                 try:
                     if item['copy_history'][0]['attachments'][0]['type'] == 'photo':
