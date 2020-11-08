@@ -42,14 +42,14 @@ if config.proxyEnable:
     apihelper.proxy = {'https': f'socks5://{config.proxyLogin}:{config.proxyPass}@{config.proxyIp}:{config.proxyPort}'}
 
 
-def getData():
+def getData(domain):
     timeout = eventlet.Timeout(20)
     # trying to request data from vk_api
     try:
         data = requests.get('https://api.vk.com/method/wall.get',
                             params={'access_token': config.vkToken,
                                     'v': config.reqVer,
-                                    'domain': config.vkDomain,
+                                    'domain': domain,
                                     'filter': config.reqFilter,
                                     'count': config.reqCount})
         return data.json()['response']['items']
@@ -394,18 +394,29 @@ def sendPosts(items, last_id):
         cleaning('after')
 
 
-def checkNewPost():
+def checkNewPost(domain: str):
     if not isBotChannelAdmin(bot, config.tgChannel):
         pass
     addLog('i', '[VK] Started scanning for new posts')
-    with open('last_known_id.txt', 'r') as file:
-        last_id = int(file.read())
-        if last_id is None:
-            addLog('e', 'Could not read from storage. Skipped iteration')
-            return
-        addLog('i', f"Last id of vk post is {last_id}")
+    file_name = f'last_known_id_{domain}.txt'
+    file = None
     try:
-        feed = getData()
+        file = open(file_name, 'r')
+    except FileNotFoundError:
+        addLog('i', f'File {file_name} not found. Creating it and writing 0')
+        file = open(file_name, 'w')
+        file.write('0')
+        file.close()
+        file = open(file_name, 'r')
+    finally:
+        last_id = int(file.read())
+        file.close()
+    if last_id is None:
+        last_id = 0
+        addLog('w', 'Could not read from storage. Setting to 0')
+    addLog('i', f"Last id of vk post is {last_id}")
+    try:
+        feed = getData(domain)
         # continue if we received data
         if feed is not None:
             entries = feed
@@ -488,7 +499,7 @@ def sendLog(log_message):
     if isBotForLog:
         try:
             log_message_temp = '<code>' + log_message + '</code>\ntgChannel = ' + config.tgChannel + \
-                               '\nvkDomain = <code>' + config.vkDomain + '</code>'
+                               '\nvkDomain = <code>' + config.vkDomains + '</code>'
             bot_2.send_message(config.tgLogChannel, log_message_temp, parse_mode='HTML')
         except Exception as ex:
             log_message = f'[ERROR] Something [{type(ex).__name__}] went wrong in sendLog(): {str(ex)}'
@@ -534,10 +545,16 @@ if __name__ == '__main__':
                             level=logging.INFO, filename='bot.log', datefmt='%d.%m.%Y %H:%M:%S')
     if not config.singleStart:
         while True:
-            checkNewPost()
-            addLog('i', 'Script went to sleep for ' + str(config.timeSleep) + ' seconds\n\n')
+            for domain in config.vkDomains:
+                addLog('i', f'Checking group {domain}')
+                checkNewPost(domain)
+                addLog('i', 'Script went to sleep for ' + str(config.timeSleep) + ' seconds\n\n')
+                # For telegram not to block
+                time.sleep(1)
             # pause for n minutes (timeSleep in config.py)
             time.sleep(int(config.timeSleep))
     elif config.singleStart:
-        checkNewPost()
+        for domain in config.vkDomains:
+            checkNewPost(domain)
+            addLog('i', f'Checking group {domain}')
         addLog('i', 'Script exited.')
